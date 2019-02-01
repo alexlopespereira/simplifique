@@ -5,6 +5,11 @@ from googleplaces import GooglePlaces, types, lang, GooglePlacesError
 from app import Place, db, Review
 from config import YOUR_API_KEY
 import csv
+# encoding=utf8
+import sys
+
+reload(sys)
+sys.setdefaultencoding('utf8')
 
 google_places = GooglePlaces(YOUR_API_KEY)
 
@@ -109,6 +114,7 @@ def delete_rows():
 def read_csv(file):
     with open(file, 'rb') as f:
         reader = csv.reader(f)
+        next(reader, None)  # skip the headers
         currlist = list(reader)
 
     return currlist
@@ -120,7 +126,7 @@ def write_csv(filepath, data):
         wr.writerow(data)
 
 
-def get_data(places):
+def get_data(places, c):
     for place in places:
         nlow = place.name.lower()
         lterms = ['inss', u'previdência social', u'instituto nacional seguro social', u'instituto nacional do seguro social', u'previdencia social',
@@ -137,20 +143,16 @@ def get_data(places):
         p = db.session.query(Place).filter_by(id=place.place_id).first()
         if not p:
             place.get_details()
-            # addr = place.formatted_address.split(',')[-3].split('-')
             city = place.details['address_components'][2]['short_name']
             state = place.details['address_components'][3]['short_name']
-            # if len(addr) == 1:
-            #     addr = place.formatted_address.split('-')[-2].split(',')
-            #     city = addr[0].strip()
-            #     state = addr[1].strip()
-            # else:
-            #     city=addr[0].strip()
-            #     state = addr[1].strip()
 
             p = Place(id=place.place_id, address=place.formatted_address, lat=place.geo_location['lat'],
                       lng=place.geo_location['lng'], name=place.name, local_phone_number=place.local_phone_number,
-                      rating=place.rating, city=city, state=state)
+                      rating=place.rating, city=city, state=state,
+                      endereco=c[7], bairro=c[0], municipio=c[9], cep=c[1], cnpj=c[2], cod_unid_gestora=c[3], cod_uo_inss=c[4],
+                      gex=c[8], sigla_uo_inss=c[10], telefone='{0}{1}'.format(c[6], c[11]), tipo=c[12], status_ativo=c[14]
+                      )
+
             db.session.add(p)
 
             try:
@@ -158,59 +160,82 @@ def get_data(places):
             except:
                 db.session.rollback()
                 pass
+
+            print(u'added place: {0}'.format(place.formatted_address))
+
+            if 'reviews' in place.details:
+                for i in place.details['reviews']:
+                    rev = Review(author_name=i['author_name'], author_url=i['author_url'],  # language=i['language'],
+                                 profile_photo_url=i['profile_photo_url'], rating=i['rating'],
+                                 relative_time_description=i['relative_time_description'], text=i['text'],
+                                 time=i['time'])
+
+                    p.reviews.append(rev)
+                    try:
+                        db.session.commit()
+                    except:
+                        db.session.rollback()
+                        pass
+
+                    print(u'added review: {0}'.format(i['text']))
         else:
-            continue
+            p.bairro = c[0]
+            p.municipio = c[9]
+            p.cep = c[1]
+            p.cnpj = c[2]
+            p.cod_unid_gestora = c[3]
+            p.cod_uo_inss = c[4]
+            p.gex = c[8]
+            p.sigla_uo_inss = c[10]
+            p.telefone = '{0}{1}'.format(c[6], c[11])
+            p.tipo = c[12]
+            p.status_ativo = c[14]
+            p.endereco = c[7]
 
-        print(u'added place: {0}'.format(place.formatted_address))
+            db.session.add(p)
+            try:
+                db.session.commit()
+            except:
+                db.session.rollback()
+                pass
 
-        if 'reviews' in place.details:
-            for i in place.details['reviews']:
-                rev = Review(author_name=i['author_name'], author_url=i['author_url'],  # language=i['language'],
-                             profile_photo_url=i['profile_photo_url'], rating=i['rating'],
-                             relative_time_description=i['relative_time_description'], text=i['text'], time=i['time'])
 
-                p.reviews.append(rev)
-                try:
-                    db.session.commit()
-                except:
-                    db.session.rollback()
-                    pass
 
-                print(u'added review: {0}'.format(i['text']))
+
 
 
 # fill_city()
-# convert_date()
-# full_list = []
-# header =['place_id', 'formatted_address', 'lat', 'lng', 'name', 'local_phone_number', 'rating', 'user_ratings_total',
-#          'author_name', 'author_url', 'language', 'profile_photo_url', 'user_rating', 'relative_time_description', 'text', 'time']
-# full_list.append(list(header))
-# full_dict = {}
-# full_dict['header'] = header
 
 first_query = True
 csv_file = read_csv('./inssof.csv')
-for c in capitais:
-    print(c[1])
+first_city = u'Campo Alegre'
+first_iter = True
+for c in csv_file:
+    municipio = c[9].strip().encode('utf-8')
+    if municipio != first_city and first_iter:
+        continue
+
+    first_iter = False
+    print(c[9])
+    addr = '{0} {1} CEP {2}, {3}, {4}'.format(c[7].strip(), c[0].strip(), c[1].strip(), municipio, c[13].strip()).encode('utf-8')
     query_result = google_places.text_search(
         language=lang.PORTUGUESE_BRAZIL,
-        lat_lng={'lat': c[3], 'lng': c[2]},
-        # locationbias='rectangle:-15.834343,-47.947989|-15.725664,-47.835764',
-        location='Brasil',
+        #lat_lng={'lat': c[3], 'lng': c[2]},
+        location=addr,
         query='inss',
-        radius=50000
+        radius=3000
     )
 
-    get_data(query_result.places)
+    get_data(query_result.places, c)
 
     while query_result.has_next_page_token:
         if not first_query:
             query_result = google_places.nearby_search(
                 pagetoken=query_result.next_page_token)
-            get_data(query_result.places)
+            get_data(query_result.places, c)
         else:
             first_query = False
-            get_data(query_result.places)
+            get_data(query_result.places, c)
 
 
 

@@ -37,6 +37,7 @@ class Place(db.Model):
     reviews = db.relationship('Review', backref=db.backref('place', lazy='joined'), lazy='dynamic')
 
     bairro = db.Column(db.String)
+    municipio = db.Column(db.String)
     cep = db.Column(db.String)
     cnpj = db.Column(db.String)
     cod_unid_gestora = db.Column(db.String)
