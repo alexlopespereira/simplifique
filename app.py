@@ -21,6 +21,7 @@ es = Elasticsearch(
 )
 urlgrammar = 'http://localhost:9000/api/v1/query'
 
+currindex = 'ginss'
 
 class Place(db.Model):
     __tablename__ = 'place'
@@ -34,6 +35,18 @@ class Place(db.Model):
     state = db.Column(db.String)
     local_phone_number = db.Column(db.String)
     reviews = db.relationship('Review', backref=db.backref('place', lazy='joined'), lazy='dynamic')
+
+    bairro = db.Column(db.String)
+    cep = db.Column(db.String)
+    cnpj = db.Column(db.String)
+    cod_unid_gestora = db.Column(db.String)
+    cod_uo_inss = db.Column(db.String)
+    gex = db.Column(db.String)
+    sigla_uo_inss = db.Column(db.String)
+    telefone = db.Column(db.String)
+    tipo = db.Column(db.String)
+    status_ativo = db.Column(db.String)
+    endereco = db.Column(db.String)
 
     # def add_index_to_es(self):
     #     es.index('inss', 'place', self.to_json_index())
@@ -57,18 +70,14 @@ class Review(db.Model):
     place_id = db.Column(db.String, db.ForeignKey('place.id'))
 
     def add_index_to_es(self):
-        es.index('inss', 'review', self.to_json())
-
+        es.index(currindex, 'review', self.to_json())
 
     def postObj(self, urlgrammar, data):
         headers = {'Content-Type': 'application/json; charset=utf-8',
                    'Accept': 'application/xml, text/javascript, */*; q=0.01',
                    'Content-Language': 'pt'}
         r = requests.post(urlgrammar, data=json.dumps(data), headers=headers)
-        #resp = json.dumps(r.json(), indent=4)
-        #print resp
         return r.json()
-
 
     def to_json(self):
         place = db.session.query(Place).filter_by(id=self.place_id).first()

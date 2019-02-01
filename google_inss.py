@@ -2,40 +2,57 @@
 import datetime
 import re
 from googleplaces import GooglePlaces, types, lang, GooglePlacesError
-import csv
 from app import Place, db, Review
 from config import YOUR_API_KEY
+import csv
 
 google_places = GooglePlaces(YOUR_API_KEY)
 
-capitais = [
-    ["RO","Porto Velho",-63.899902,-8.760772],
-["AP","Macapa",-51.069395,0.034934],
-["RR","Boa Vista",-60.675328,2.823842],
-["AM","Manaus",-60.02123,-3.118662],
-["PA","Belem",-48.489756,-1.455396],
-["AC","Rio Branco",-67.824348,-9.97499],
-["TO","Palmas",-48.355751,-10.239973],
-["MT","Cuiaba",-56.097397,-15.600979],
-["MS","Campo Grande",-54.629463,-20.448589],
-["GO","Goiania",-49.264346,-16.686439],
-["DF","Brasilia",-47.929657,-15.779522],
-["PR","Curitiba",-49.264622,-25.419547],
-["SC","Florianopolis",-48.547696,-27.594486],
-["RS","Porto Alegre",-51.206533,-30.031771],
-["MA","Sao Luis",-44.282513,-2.538742],
-["CE","Fortaleza",-38.542298,-3.716638],
-["RN","Natal",-35.198604,-5.793567],
-["PB","Joao Pessoa",-34.864121,-7.11509],
-["PE","Recife",-34.877065,-8.046658],
-["AL","Maceio",-35.73496,-9.665985],
-["SE","Aracaju",-37.06766,-10.909133],
-["BA","Salvador",-38.501068,-12.97178],
-["PI","Teresina",-42.803364,-5.091944],
-["SP","Sao Paulo",-46.63952,-23.532905],
-["RJ","Rio de Janeiro",-43.200295,-22.912897],
-["MG","Belo Horizonte",-43.926572,-19.910183],
-["ES","Vitoria",-40.312806,-20.315472]]
+capitais = [#["SP", "Guarulhos", "-46.5333", "-23.4538"],
+            #["SP", "Campinas", "-47.0659", "-22.9053"],
+            #["MA", "São Luís", "-44.2825", "-2.53874"],
+            #["RJ", "São Gonçalo", "-43.0634", "-22.8268"],
+            #["RJ", "Duque de Caxias", "-43.3049", "-22.7858"],
+            #["RJ", "Nova Iguaçu", "-43.4603", "-22.7556"],
+            #["SP", "São Bernardo do Campo", "-46.5646", "-23.6914"],
+            #["SP", "Santo André", "-46.5432", "-23.6737"],
+            ["SP", "Osasco", "-46.7916", "-23.5324"],
+            ["PE", "Jaboatão Dos Guararapes", "-35.015", "-8.11298"],
+            ["SP", "São José Dos Campos", "-45.8841", "-23.1896"],
+            ["SP", "Ribeirão Preto", "-47.8099", "-21.1699"],
+            ["MG", "Contagem", "-44.0539", "-19.9321"],
+            ["MG", "Uberlândia", "-48.2749", "-18.9141"],
+            ["SP", "Sorocaba", "-47.4451", "-23.4969"],
+            ["BA", "Feira de Santana", "-38.9663", "-12.2664"],
+            ["MG", "Juiz de Fora", "-43.3398", "-21.7595"],
+            ["SC", "Joinville", "-48.8487", "-26.3045"],
+            ["PR", "Londrina", "-51.1691", "-23.304"],
+            ["RJ", "Niterói", "-43.1034", "-22.8832"],
+            ["PA", "Ananindeua", "-48.3743", "-1.36391"],
+            ["RJ", "Belford Roxo", "-43.3992", "-22.764"],
+            ["RJ", "Campos Dos Goytacazes", "-41.3181", "-21.7622"],
+            ["RJ", "São João de Meriti", "-43.3729", "-22.8058"],
+            ["GO", "Aparecida de Goiânia", "-49.2469", "-16.8198"],
+            ["RS", "Caxias do Sul", "-51.1792", "-29.1629"],
+            ["SC", "Florianópolis", "-48.5477", "-27.5945"],
+            ["SP", "Santos", "-46.335", "-23.9535"],
+            ["SP", "Mauá", "-46.4613", "-23.6677"],
+            ["ES", "Vila Velha", "-40.2875", "-20.3417"],
+            ["ES", "Serra", "-40.3074", "-20.121"],
+            ["SP", "São José do Rio Preto", "-49.3758", "-20.8113"],
+            ["SP", "Mogi Das Cruzes", "-46.1854", "-23.5208"],
+            ["SP", "Diadema", "-46.6205", "-23.6813"],
+            ["PB", "Campina Grande", "-35.8731", "-7.22196"],
+            ["MG", "Betim", "-44.2008", "-19.9668"],
+            ["PE", "Olinda", "-34.8545", "-8.01017"],
+            ["SP", "Jundiaí", "-46.8974", "-23.1852"],
+            ["SP", "Carapicuíba", "-46.8407", "-23.5235"],
+            ["SP", "Piracicaba", "-47.6476", "-22.7338"],
+            ["MG", "Montes Claros", "-43.8578", "-16.7282"],
+            ["PR", "Maringá", "-51.9333", "-23.4205"],
+            ["ES", "Cariacica", "-40.4165", "-20.2632"],
+            ["SP", "Bauru", "-49.0871", "-22.3246"]]
+
 
 def convert_date():
     review = Review.query.all()
@@ -45,8 +62,9 @@ def convert_date():
         db.session.add(r)
         db.session.commit()
 
+
 def hasNumbers(inputString):
-     return bool(re.search(r'\d', inputString))
+    return bool(re.search(r'\d', inputString))
 
 
 def fill_city():
@@ -63,7 +81,6 @@ def fill_city():
                         addr = addr[0].split(' - ')
                         if len(addr) < 2:
                             continue
-
 
             city = addr[0].strip()
             state = addr[1].strip()
@@ -89,6 +106,12 @@ def delete_rows():
             db.session.commit()
 
 
+def read_csv(file):
+    with open(file, 'rb') as f:
+        reader = csv.reader(f)
+        currlist = list(reader)
+
+    return currlist
 
 
 def write_csv(filepath, data):
@@ -96,10 +119,12 @@ def write_csv(filepath, data):
         wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
         wr.writerow(data)
 
+
 def get_data(places):
     for place in places:
         nlow = place.name.lower()
-        lterms = ['inss', u'previdência social',u'instituto nacional do seguro social',u'previdencia social',u'instituto nacional seguro social.']
+        lterms = ['inss', u'previdência social', u'instituto nacional seguro social', u'instituto nacional do seguro social', u'previdencia social',
+                  u'instituto nacional seguro social.']
         found = False
         for text in lterms:
             if text in nlow:
@@ -124,8 +149,8 @@ def get_data(places):
             #     state = addr[1].strip()
 
             p = Place(id=place.place_id, address=place.formatted_address, lat=place.geo_location['lat'],
-                    lng=place.geo_location['lng'], name=place.name, local_phone_number=place.local_phone_number,
-                    rating=place.rating, city=city, state=state)
+                      lng=place.geo_location['lng'], name=place.name, local_phone_number=place.local_phone_number,
+                      rating=place.rating, city=city, state=state)
             db.session.add(p)
 
             try:
@@ -140,7 +165,7 @@ def get_data(places):
 
         if 'reviews' in place.details:
             for i in place.details['reviews']:
-                rev = Review(author_name=i['author_name'], author_url=i['author_url'], #language=i['language'],
+                rev = Review(author_name=i['author_name'], author_url=i['author_url'],  # language=i['language'],
                              profile_photo_url=i['profile_photo_url'], rating=i['rating'],
                              relative_time_description=i['relative_time_description'], text=i['text'], time=i['time'])
 
@@ -164,15 +189,16 @@ def get_data(places):
 # full_dict['header'] = header
 
 first_query = True
-
+csv_file = read_csv('./inssof.csv')
 for c in capitais:
+    print(c[1])
     query_result = google_places.text_search(
-            language=lang.PORTUGUESE_BRAZIL,
-            lat_lng={'lat': c[3], 'lng': c[2]},
-            #locationbias='rectangle:-15.834343,-47.947989|-15.725664,-47.835764',
-            location='Brasil',
-            query='inss',
-            radius=50000
+        language=lang.PORTUGUESE_BRAZIL,
+        lat_lng={'lat': c[3], 'lng': c[2]},
+        # locationbias='rectangle:-15.834343,-47.947989|-15.725664,-47.835764',
+        location='Brasil',
+        query='inss',
+        radius=50000
     )
 
     get_data(query_result.places)
@@ -189,5 +215,3 @@ for c in capitais:
 
 
 # write_csv('./review_inss.csv', full_dict.values())
-
-
