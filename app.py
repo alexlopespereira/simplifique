@@ -21,7 +21,8 @@ es = Elasticsearch(
 )
 urlgrammar = 'http://localhost:9000/api/v1/query'
 
-currindex = 'ginss'
+reviewindex = 'greviews'
+placesindex = 'gplaces'
 
 class Place(db.Model):
     __tablename__ = 'place'
@@ -48,9 +49,28 @@ class Place(db.Model):
     tipo = db.Column(db.String)
     status_ativo = db.Column(db.String)
     endereco = db.Column(db.String)
+    rating_ponderado = db.Column(db.Float)
 
-    # def add_index_to_es(self):
-    #     es.index('inss', 'place', self.to_json_index())
+    def add_index_to_es(self):
+        es.index(placesindex, 'place', self.to_json())
+
+
+    def to_json(self):
+        json = {
+            'place_id': self.place_id,
+            'name': self.name,
+            'address': self.address,
+            'city': self.city,
+            'state': self.state,
+            'status': self.status,
+            'cnpj': self.cnpj,
+            'place_rating': self.rating,
+            'location': {"lat": self.lat, "lon": self.lng},
+            'rating_ponderado': self.rating_ponderado
+        }
+
+        return json
+
 
     def __repr__(self):
         return "<Place(name='%s', address='%s')>" % (self.name, self.address)
@@ -69,9 +89,13 @@ class Review(db.Model):
     date = db.Column(db.Date)
     relative_time_description = db.Column(db.String)
     place_id = db.Column(db.String, db.ForeignKey('place.id'))
+    sentiment_google = db.Column(db.JSON)
+    sentiment_gotitai = db.Column(db.JSON)
+    sentiment_amazon = db.Column(db.JSON)
+    sentiment_spacy = db.Column(db.JSON)
 
     def add_index_to_es(self):
-        es.index(currindex, 'review', self.to_json())
+        es.index(reviewindex, 'review', self.to_json())
 
     def postObj(self, urlgrammar, data):
         headers = {'Content-Type': 'application/json; charset=utf-8',
@@ -82,23 +106,6 @@ class Review(db.Model):
 
     def to_json(self):
         place = db.session.query(Place).filter_by(id=self.place_id).first()
-        verb = []
-        adj = []
-        adv = []
-        noum = []
-
-        if self.text != '':
-            grammar = self.postObj(urlgrammar, {"strings": [self.text], "tree": False})
-            for o in grammar[0]['output']:
-                if o['pos_tag'] == 'ADJ':
-                    adj.append({'value': o['word'].lower()})
-                elif o['pos_tag'] == 'ADV':
-                    adv.append({'value': o['word'].lower()})
-                elif o['pos_tag'] == 'NOUN':
-                    noum.append({'value': o['word'].lower()})
-                elif o['pos_tag'] == 'VERB':
-                    verb.append({'value': o['word'].lower()})
-
         json = {
             'place_id': self.place_id,
             'address': place.address,
@@ -110,10 +117,7 @@ class Review(db.Model):
             'date': self.date,
             'author_name': self.author_name,
             'location': {"lat": place.lat, "lon": place.lng},
-            'verb': verb,
-            'adj': adj,
-            'adv': adv,
-            'noum': noum
+            'rating_ponderado': place.rating_ponderado
         }
 
         return json

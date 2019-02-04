@@ -41,7 +41,7 @@ mapping = [
     ##1
     "review": {
         "properties": {
-            "place_id":         {"type": "text", "analyzer": "brazilian"},
+            "place_id":         {"type": "keyword"},
             "address":          {"type": "text", "analyzer": "brazilian"},
             "city":             {"type": "keyword"},
             "state":            {"type": "keyword"},
@@ -51,30 +51,24 @@ mapping = [
             "date":             {"type": "date"},
             "author_name":      {"type": "text", "analyzer": "brazilian"},
             "location":         {"type": "geo_point"},
-            "verb": {
-                "type": "nested",
-                "properties": {
-                    "value": {"type": "keyword"}
-                }
-            },
-            "adj": {
-                "type": "nested",
-                "properties": {
-                    "value": {"type": "keyword"}
-                }
-            },
-            "adv": {
-                "type": "nested",
-                "properties": {
-                    "value": {"type": "keyword"}
-                }
-            },
-            "noum": {
-                "type": "nested",
-                "properties": {
-                    "value": {"type": "keyword"}
-                }
-            },
+            "rating_ponderado": {"type": "float"},
+        }
+    }
+},
+{
+    ##2
+    "place": {
+        "properties": {
+            "place_id":         {"type": "keyword"},
+            "name":             {"type": "keyword"},
+            "address":          {"type": "text", "analyzer": "brazilian"},
+            "city":             {"type": "keyword"},
+            "state":            {"type": "keyword"},
+            "status":           {"type": "keyword"},
+            "cnpj":             {"type": "keyword"},
+            "place_rating":     {"type": "float"},
+            "rating_ponderado": {"type": "float"},
+            "location":         {"type": "geo_point"},
         }
     }
 }

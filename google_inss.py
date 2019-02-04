@@ -1,13 +1,15 @@
 # coding=utf-8
 import datetime
 import re
+import random
+from time import sleep
+
 from googleplaces import GooglePlaces, types, lang, GooglePlacesError
 from app import Place, db, Review
 from config import YOUR_API_KEY
 import csv
 # encoding=utf8
 import sys
-
 reload(sys)
 sys.setdefaultencoding('utf8')
 
@@ -95,6 +97,15 @@ def fill_city():
             db.session.commit()
 
 
+def media_ponderada():
+    places = Place.query.all()
+    for p in places:
+        count = p.reviews.count()
+        p.rating_ponderado = p.rating * count
+        db.session.add(p)
+        db.session.commit()
+
+
 def delete_rows():
     places = Place.query.all()
     for p in places:
@@ -179,6 +190,7 @@ def get_data(places, c):
 
                     print(u'added review: {0}'.format(i['text']))
         else:
+            print(u'updated review: {0}'.format(c[9]))
             p.bairro = c[0]
             p.municipio = c[9]
             p.cep = c[1]
@@ -201,14 +213,11 @@ def get_data(places, c):
 
 
 
-
-
-
-# fill_city()
+# media_ponderada()
 
 first_query = True
 csv_file = read_csv('./inssof.csv')
-first_city = u'Campo Alegre'
+first_city = u'Parintins'
 first_iter = True
 for c in csv_file:
     municipio = c[9].strip().encode('utf-8')
@@ -218,17 +227,30 @@ for c in csv_file:
     first_iter = False
     print(c[9])
     addr = '{0} {1} CEP {2}, {3}, {4}'.format(c[7].strip(), c[0].strip(), c[1].strip(), municipio, c[13].strip()).encode('utf-8')
-    query_result = google_places.text_search(
-        language=lang.PORTUGUESE_BRAZIL,
-        #lat_lng={'lat': c[3], 'lng': c[2]},
-        location=addr,
-        query='inss',
-        radius=3000
-    )
+    worked = False
+    tries = 1
+    while not worked:
+        try:
+            query_result = google_places.text_search(
+                language=lang.PORTUGUESE_BRAZIL,
+                #lat_lng={'lat': c[3], 'lng': c[2]},
+                location=addr,
+                query='inss',
+                radius=3000
+            )
+            worked = True
+            n = random.uniform(0, 1)*10
+            sleep(10 * (pow(tries + n, 2)))
+        except:
+            pass
 
+    n2 = random.uniform(0, 1)*10
+    sleep(10 * n2)
     get_data(query_result.places, c)
 
     while query_result.has_next_page_token:
+        n2 = random.uniform(0, 1) * 10
+        sleep(10 * n2)
         if not first_query:
             query_result = google_places.nearby_search(
                 pagetoken=query_result.next_page_token)
