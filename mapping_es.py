@@ -52,6 +52,16 @@ mapping = [
             "author_name":      {"type": "text", "analyzer": "brazilian"},
             "location":         {"type": "geo_point"},
             "rating_ponderado": {"type": "float"},
+            "amazon_sentiment": {
+                        "properties": {
+                            "score":  {"type": "float"},
+                            "label": {"type": "keyword"},
+                            "positive": {"type": "float"},
+                            "neutral": {"type": "float"},
+                            "negative": {"type": "float"},
+                            "mixed": {"type": "float"}
+                        }
+            }
         }
     }
 },
@@ -68,6 +78,7 @@ mapping = [
             "cnpj":             {"type": "keyword"},
             "place_rating":     {"type": "float"},
             "rating_ponderado": {"type": "float"},
+            "qtd_avaliacoes":   {"type": "integer"},
             "location":         {"type": "geo_point"},
         }
     }

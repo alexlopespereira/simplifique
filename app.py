@@ -50,6 +50,8 @@ class Place(db.Model):
     status_ativo = db.Column(db.String)
     endereco = db.Column(db.String)
     rating_ponderado = db.Column(db.Float)
+    stddev = db.Column(db.Float)
+    qtd_avaliacaoes = db.Column(db.Integer)
 
     def add_index_to_es(self):
         es.index(placesindex, 'place', self.to_json())
@@ -57,16 +59,17 @@ class Place(db.Model):
 
     def to_json(self):
         json = {
-            'place_id': self.place_id,
+            'place_id': self.id,
             'name': self.name,
             'address': self.address,
             'city': self.city,
             'state': self.state,
-            'status': self.status,
+            'status': self.status_ativo,
             'cnpj': self.cnpj,
             'place_rating': self.rating,
-            'location': {"lat": self.lat, "lon": self.lng},
-            'rating_ponderado': self.rating_ponderado
+            'location': {'lat': self.lat, 'lon': self.lng},
+            'rating_ponderado': self.rating_ponderado,
+            'qtd_avaliacoes': self.qtd_avaliacaoes,
         }
 
         return json
@@ -116,8 +119,9 @@ class Review(db.Model):
             'text': self.text,
             'date': self.date,
             'author_name': self.author_name,
-            'location': {"lat": place.lat, "lon": place.lng},
-            'rating_ponderado': place.rating_ponderado
+            'location': {'lat': place.lat, 'lon': place.lng},
+            'rating_ponderado': place.rating_ponderado,
+            'amazon_sentiment': self.sentiment_amazon
         }
 
         return json

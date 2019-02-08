@@ -1,14 +1,15 @@
 # coding=utf-8
+# encoding=utf8
 import datetime
 import re
 import random
 from time import sleep
-
-from googleplaces import GooglePlaces, types, lang, GooglePlacesError
+from googleplaces import GooglePlaces, lang, GooglePlacesError
 from app import Place, db, Review
 from config import YOUR_API_KEY
 import csv
-# encoding=utf8
+from sqlalchemy import func
+
 import sys
 reload(sys)
 sys.setdefaultencoding('utf8')
@@ -61,65 +62,8 @@ capitais = [#["SP", "Guarulhos", "-46.5333", "-23.4538"],
             ["SP", "Bauru", "-49.0871", "-22.3246"]]
 
 
-def convert_date():
-    review = Review.query.all()
-    for r in review:
-        dt_object = datetime.datetime.fromtimestamp(r.time)
-        r.date = dt_object.date()
-        db.session.add(r)
-        db.session.commit()
-
-
 def hasNumbers(inputString):
     return bool(re.search(r'\d', inputString))
-
-
-def fill_city():
-    places = Place.query.all()
-    for p in places:
-        if len(p.state) > 2:
-            addr = p.address.split(',')[-2].split('-')
-            city = addr[0].strip()
-            if hasNumbers(city):
-                addr = p.address.split(',')[0].split(' - ')
-                if len(addr) < 2:
-                    addr = p.address.split(',')[2].split(',')
-                    if len(addr) < 2:
-                        addr = addr[0].split(' - ')
-                        if len(addr) < 2:
-                            continue
-
-            city = addr[0].strip()
-            state = addr[1].strip()
-            p.city = city
-            p.state = state
-            db.session.add(p)
-            db.session.commit()
-
-
-def media_ponderada():
-    places = Place.query.all()
-    for p in places:
-        count = p.reviews.count()
-        p.rating_ponderado = p.rating * count
-        db.session.add(p)
-        db.session.commit()
-
-
-def delete_rows():
-    places = Place.query.all()
-    for p in places:
-        lterms = ['CAP']
-        name = p.name.lower()
-        found = False
-        for text in lterms:
-            if text in name:
-                found = True
-
-        if found:
-            print(u"delete {0}".format(name))
-            db.session.delete(p)
-            db.session.commit()
 
 
 def read_csv(file):
@@ -136,6 +80,16 @@ def write_csv(filepath, data):
         wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
         wr.writerow(data)
 
+def get_city_state(address_components):
+    city = None
+    state = None
+    for c in address_components:
+        if u'administrative_area_level_1' in c['types']:
+            state = c['short_name']
+        elif u'administrative_area_level_2' in c['types']:
+            city = c['long_name']
+
+    return city, state
 
 def get_data(places, c):
     for place in places:
@@ -148,15 +102,15 @@ def get_data(places, c):
                 found = True
 
         if not found:
-            print(nlow)
+            print("descartou {0}".format(nlow))
             continue
 
         p = db.session.query(Place).filter_by(id=place.place_id).first()
         if not p:
             place.get_details()
-            city = place.details['address_components'][2]['short_name']
-            state = place.details['address_components'][3]['short_name']
-
+            # city = place.details['address_components'][2]['short_name']
+            # state = place.details['address_components'][3]['short_name']
+            city, state = get_city_state(place.details['address_components'])
             p = Place(id=place.place_id, address=place.formatted_address, lat=place.geo_location['lat'],
                       lng=place.geo_location['lng'], name=place.name, local_phone_number=place.local_phone_number,
                       rating=place.rating, city=city, state=state,
@@ -176,10 +130,11 @@ def get_data(places, c):
 
             if 'reviews' in place.details:
                 for i in place.details['reviews']:
+                    dt_object = datetime.datetime.fromtimestamp(i['time'])
                     rev = Review(author_name=i['author_name'], author_url=i['author_url'],  # language=i['language'],
                                  profile_photo_url=i['profile_photo_url'], rating=i['rating'],
                                  relative_time_description=i['relative_time_description'], text=i['text'],
-                                 time=i['time'])
+                                 time=i['time'], date=dt_object.date())
 
                     p.reviews.append(rev)
                     try:
@@ -190,7 +145,7 @@ def get_data(places, c):
 
                     print(u'added review: {0}'.format(i['text']))
         else:
-            print(u'updated review: {0}'.format(c[9]))
+            print(u'updated place: {0}'.format(c[9]))
             p.bairro = c[0]
             p.municipio = c[9]
             p.cep = c[1]
@@ -213,11 +168,9 @@ def get_data(places, c):
 
 
 
-# media_ponderada()
-
 first_query = True
 csv_file = read_csv('./inssof.csv')
-first_city = u'Parintins'
+first_city = u'Cocal'
 first_iter = True
 for c in csv_file:
     municipio = c[9].strip().encode('utf-8')
@@ -239,17 +192,19 @@ for c in csv_file:
                 radius=3000
             )
             worked = True
-            n = random.uniform(0, 1)*10
-            sleep(10 * (pow(tries + n, 2)))
+            n = random.uniform(0, 1)*5
+            sleep(5 * (pow(tries + n, 2)))
         except:
+            tries = tries + 1
+            print("tries {0}".format(tries))
             pass
 
-    n2 = random.uniform(0, 1)*10
-    sleep(10 * n2)
+    # n2 = random.uniform(0, 1)*5
+    # sleep(10 * n2)
     get_data(query_result.places, c)
 
     while query_result.has_next_page_token:
-        n2 = random.uniform(0, 1) * 10
+        n2 = random.uniform(0, 1) * 5
         sleep(10 * n2)
         if not first_query:
             query_result = google_places.nearby_search(
