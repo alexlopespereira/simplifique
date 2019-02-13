@@ -74,12 +74,39 @@ mapping = [
             "address":          {"type": "text", "analyzer": "brazilian"},
             "city":             {"type": "keyword"},
             "state":            {"type": "keyword"},
-            "status":           {"type": "keyword"},
+            "municipio":        {"type": "keyword"},
+            "uf":               {"type": "keyword"},
             "cnpj":             {"type": "keyword"},
+            "cod_uo_inss":      {"type": "keyword"},
             "place_rating":     {"type": "float"},
             "rating_ponderado": {"type": "float"},
             "qtd_avaliacoes":   {"type": "integer"},
+            "cod_aps":          {"type": "integer"},
+            "stddev":           {"type": "float"},
             "location":         {"type": "geo_point"},
+        }
+    }
+},
+{
+    ##3
+    "agendamento": {
+        "properties": {
+            "cod_agendamento":                  {"type": "integer"},
+            "nome_requerente":                  {"type": "keyword"},
+            "data_agendamento":                 {"type": "date"},
+            "data_solicitacao_agendamento":     {"type": "date"},
+            "servico":                          {"type": "keyword"},
+            "celular":                          {"type": "keyword"},
+            "telefone_fixo":                    {"type": "keyword"},
+            "email":                            {"type": "keyword"},
+            "municipio":                        {"type": "keyword"},
+            "uf":                               {"type": "keyword"},
+            # "location":                         {"type": "geo_point"},
+            # "delay":                            {"type": "integer"},
+            # "dia_sem_solic_agendamento":        {"type": "keyword"},
+            # "dia_sem_agendamento":              {"type": "keyword"},
+            # "dia_mes_solic_agendamento":        {"type": "integer"},
+            # "dia_mes_agendamento":              {"type": "integer"},
         }
     }
 }

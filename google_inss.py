@@ -9,6 +9,7 @@ from app import Place, db, Review
 from config import YOUR_API_KEY
 import csv
 from sqlalchemy import func
+from unidecode import unidecode
 
 import sys
 reload(sys)
@@ -16,62 +17,47 @@ sys.setdefaultencoding('utf8')
 
 google_places = GooglePlaces(YOUR_API_KEY)
 
-capitais = [#["SP", "Guarulhos", "-46.5333", "-23.4538"],
-            #["SP", "Campinas", "-47.0659", "-22.9053"],
-            #["MA", "São Luís", "-44.2825", "-2.53874"],
-            #["RJ", "São Gonçalo", "-43.0634", "-22.8268"],
-            #["RJ", "Duque de Caxias", "-43.3049", "-22.7858"],
-            #["RJ", "Nova Iguaçu", "-43.4603", "-22.7556"],
-            #["SP", "São Bernardo do Campo", "-46.5646", "-23.6914"],
-            #["SP", "Santo André", "-46.5432", "-23.6737"],
-            ["SP", "Osasco", "-46.7916", "-23.5324"],
-            ["PE", "Jaboatão Dos Guararapes", "-35.015", "-8.11298"],
-            ["SP", "São José Dos Campos", "-45.8841", "-23.1896"],
-            ["SP", "Ribeirão Preto", "-47.8099", "-21.1699"],
-            ["MG", "Contagem", "-44.0539", "-19.9321"],
-            ["MG", "Uberlândia", "-48.2749", "-18.9141"],
-            ["SP", "Sorocaba", "-47.4451", "-23.4969"],
-            ["BA", "Feira de Santana", "-38.9663", "-12.2664"],
-            ["MG", "Juiz de Fora", "-43.3398", "-21.7595"],
-            ["SC", "Joinville", "-48.8487", "-26.3045"],
-            ["PR", "Londrina", "-51.1691", "-23.304"],
-            ["RJ", "Niterói", "-43.1034", "-22.8832"],
-            ["PA", "Ananindeua", "-48.3743", "-1.36391"],
-            ["RJ", "Belford Roxo", "-43.3992", "-22.764"],
-            ["RJ", "Campos Dos Goytacazes", "-41.3181", "-21.7622"],
-            ["RJ", "São João de Meriti", "-43.3729", "-22.8058"],
-            ["GO", "Aparecida de Goiânia", "-49.2469", "-16.8198"],
-            ["RS", "Caxias do Sul", "-51.1792", "-29.1629"],
-            ["SC", "Florianópolis", "-48.5477", "-27.5945"],
-            ["SP", "Santos", "-46.335", "-23.9535"],
-            ["SP", "Mauá", "-46.4613", "-23.6677"],
-            ["ES", "Vila Velha", "-40.2875", "-20.3417"],
-            ["ES", "Serra", "-40.3074", "-20.121"],
-            ["SP", "São José do Rio Preto", "-49.3758", "-20.8113"],
-            ["SP", "Mogi Das Cruzes", "-46.1854", "-23.5208"],
-            ["SP", "Diadema", "-46.6205", "-23.6813"],
-            ["PB", "Campina Grande", "-35.8731", "-7.22196"],
-            ["MG", "Betim", "-44.2008", "-19.9668"],
-            ["PE", "Olinda", "-34.8545", "-8.01017"],
-            ["SP", "Jundiaí", "-46.8974", "-23.1852"],
-            ["SP", "Carapicuíba", "-46.8407", "-23.5235"],
-            ["SP", "Piracicaba", "-47.6476", "-22.7338"],
-            ["MG", "Montes Claros", "-43.8578", "-16.7282"],
-            ["PR", "Maringá", "-51.9333", "-23.4205"],
-            ["ES", "Cariacica", "-40.4165", "-20.2632"],
-            ["SP", "Bauru", "-49.0871", "-22.3246"]]
+capitais = [["Rondônia","RO","Porto Velho",-63.899902,-8.760772],
+["Amapá","AP","Macapa",-51.069395,0.034934],
+["Roraima","RR","Boa Vista",-60.675328,2.823842],
+["Amazonas","AM","Manaus",-60.02123,-3.118662],
+["Pará","PA","Belem",-48.489756,-1.455396],
+["Acre","AC","Rio Branco",-67.824348,-9.97499],
+["Tocantins","TO","Palmas",-48.355751,-10.239973],
+["Mato Grosso","MT","Cuiaba",-56.097397,-15.600979],
+["Mato Grosso do Sul","MS","Campo Grande",-54.629463,-20.448589],
+["Goiás","GO","Goiania",-49.264346,-16.686439],
+["Distrito Federal","DF","Brasilia",-47.929657,-15.779522],
+["Paraná","PR","Curitiba",-49.264622,-25.419547],
+["Santa Catarina","SC","Florianopolis",-48.547696,-27.594486],
+["Rio Grande do Sul","RS","Porto Alegre",-51.206533,-30.031771],
+["Maranhão","MA","Sao Luis",-44.282513,-2.538742],
+["Ceará","CE","Fortaleza",-38.542298,-3.716638],
+["Rio Grande do Norte","RN","Natal",-35.198604,-5.793567],
+["Paraíba","PB","Joao Pessoa",-34.864121,-7.11509],
+["Pernambuco","PE","Recife",-34.877065,-8.046658],
+["Alagoas","AL","Maceio",-35.73496,-9.665985],
+["Sergipe","SE","Aracaju",-37.06766,-10.909133],
+["Bahia","BA","Salvador",-38.501068,-12.97178],
+["Piauí","PI","Teresina",-42.803364,-5.091944],
+["São Paulo","SP","Sao Paulo",-46.63952,-23.532905],
+["Rio de Janeiro","RJ","Rio de Janeiro",-43.200295,-22.912897],
+["Minas Gerais","MG","Belo Horizonte",-43.926572,-19.910183],
+["Espírito Santo","ES","Vitoria",-40.312806,-20.315472]]
 
 
 def hasNumbers(inputString):
     return bool(re.search(r'\d', inputString))
 
 
-def read_csv(file):
+def read_csv(file, skip=None):
     with open(file, 'rb') as f:
         reader = csv.reader(f)
         next(reader, None)  # skip the headers
         currlist = list(reader)
 
+    if skip:
+        currlist = currlist[skip-1:]
     return currlist
 
 
@@ -167,53 +153,80 @@ def get_data(places, c):
                 pass
 
 
+def get_data2(places, c):
+    city_name = unidecode(u'{0}'.format(c[3])).lower()
+    selected_places = []
+    for place in places:
+        nlow = unidecode(u'{0}'.format(place.vicinity)).lower()
+        if city_name in nlow:
+            selected_places.append(place)
+
+    selected = None
+    if len(selected_places)==0:
+        print('skiping {0}'.format(c[3]))
+        return
+
+    for place in selected_places:
+        nlow = place.name.lower()
+        if city_name in nlow:
+            selected = place
+
+    for place in selected_places:
+        nlow = place.name.lower()
+        if 'agência' in nlow or 'agencia' in nlow:
+            selected = place
+
+    if not selected:
+        selected = places[0]
+    p = db.session.query(Place).filter_by(cod_aps="{:08d}".format(int(c[0]))).first()
+    selected.get_details()
+    city, state = get_city_state(selected.details['address_components'])
+    p.address = selected.formatted_address
+    p.id=selected.place_id
+    p.lat=selected.geo_location['lat']
+    p.lng=selected.geo_location['lng']
+    p.name=selected.name
+    p.local_phone_number=selected.local_phone_number
+    p.rating=selected.rating
+    p.city=city
+    p.state=state
+    db.session.add(p)
+    db.session.commit()
+
+    #print(u'updated place: {0}, {1}'.format(c[0], selected.formatted_address))
+
+
 
 first_query = True
-csv_file = read_csv('./inssof.csv')
-first_city = u'Cocal'
+csv_file = read_csv('./data/inssof3.csv', skip=91)
+first_city = None
 first_iter = True
 for c in csv_file:
-    municipio = c[9].strip().encode('utf-8')
-    if municipio != first_city and first_iter:
-        continue
-
     first_iter = False
-    print(c[9])
-    addr = '{0} {1} CEP {2}, {3}, {4}'.format(c[7].strip(), c[0].strip(), c[1].strip(), municipio, c[13].strip()).encode('utf-8')
+    print(c[3])
+    addr = unidecode(u'{0}, {2}, {3}, Brasil'.format(c[6], c[7], c[3], c[4])).encode('utf-8')
+
     worked = False
     tries = 1
     while not worked:
         try:
-            query_result = google_places.text_search(
+            query_result = google_places.nearby_search(
                 language=lang.PORTUGUESE_BRAZIL,
                 #lat_lng={'lat': c[3], 'lng': c[2]},
                 location=addr,
-                query='inss',
+                name='inss',
                 radius=3000
             )
             worked = True
             n = random.uniform(0, 1)*5
             sleep(5 * (pow(tries + n, 2)))
-        except:
+        except Exception as e:
             tries = tries + 1
             print("tries {0}".format(tries))
             pass
 
     # n2 = random.uniform(0, 1)*5
     # sleep(10 * n2)
-    get_data(query_result.places, c)
-
-    while query_result.has_next_page_token:
-        n2 = random.uniform(0, 1) * 5
-        sleep(10 * n2)
-        if not first_query:
-            query_result = google_places.nearby_search(
-                pagetoken=query_result.next_page_token)
-            get_data(query_result.places, c)
-        else:
-            first_query = False
-            get_data(query_result.places, c)
+    get_data2(query_result.places, c)
 
 
-
-# write_csv('./review_inss.csv', full_dict.values())

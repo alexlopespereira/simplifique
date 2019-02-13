@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from app import Review, Place, db, es, ES_HOST, reviewindex, placesindex
+from app import Review, Place, db, es, ES_HOST, reviewindex, placesindex, agendamentoindex, Agendamento
 from mapping_es import mapping
 import json
 import requests
@@ -8,6 +8,24 @@ import requests
 
 def refresh_eq_index():
     es.indices.refresh(index=reviewindex)
+
+
+def index_docs(catalog_url, index, doctype, mapping_number, documents):
+    s = requests.session()
+    headers = {'content-type': 'application/json'}
+    rurl = catalog_url + "/" + index
+
+    s.delete(rurl)
+    r = s.put(rurl, data=json.dumps(mapping[0]), headers=headers)
+    resp = json.dumps(r.json(), indent=4)
+    print(resp)
+    urlmappingreviews = rurl + '/_mapping/' + doctype
+    r = s.put(urlmappingreviews, data=json.dumps(mapping[mapping_number]), headers=headers)
+    resp = json.dumps(r.json(), indent=4)
+    print(resp)
+
+    for i in documents:
+        i.add_index_to_es()
 
 
 def index_reviews(catalog_url, pindex, rindex, RESET_PLACE=False, RESET_REVIEW=False, limit=None):
@@ -50,5 +68,12 @@ def index_reviews(catalog_url, pindex, rindex, RESET_PLACE=False, RESET_REVIEW=F
 
 
 catalogurl = 'http://{0}:7000'.format(ES_HOST)
-index_reviews(catalogurl, placesindex, reviewindex, RESET_PLACE=True, RESET_REVIEW=True)
+# reviews = db.session.query(Review).all()
+# index_docs(catalogurl, reviewindex, 'review', 1, reviews)
+
+# places = db.session.query(Place).all()
+# index_docs(catalogurl, placesindex, 'place', 2, places)
+
+agendamentos = db.session.query(Agendamento).all()
+index_docs(catalogurl, agendamentoindex, 'agendamento', 3, agendamentos)
 
