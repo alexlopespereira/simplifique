@@ -198,7 +198,7 @@ def get_data2(places, c):
 
 
 first_query = True
-csv_file = read_csv('./data/inssof3.csv', skip=91)
+csv_file = read_csv('./data/inssof3.csv', skip=303)
 first_city = None
 first_iter = True
 for c in csv_file:

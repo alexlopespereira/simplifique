@@ -255,11 +255,16 @@ def create_places():
 
 
 def populate_agendamento():
-    csv_file = read_csv('./data/agendamentos.csv', skip=None)
+    csv_file = read_csv('./data/agendamentos2.csv', skip=None)
+
     for c in csv_file:
+        if len(c) > 10:
+            email = c[10]
+        else:
+            email = None
         a = Agendamento(cod_agendamento=c[2], nome_requerente=c[7], data_agendamento=c[4],
                         data_solicitacao_agendamento=c[5], servico=c[6],
-                        celular=c[9], telefone_fixo=c[8], email=c[10], cod_aps="{:08d}".format(int(c[0])))
+                        celular=c[9], telefone_fixo=c[8], email=email, cod_aps="{:08d}".format(int(c[0])))
         db.session.add(a)
         db.session.commit()
 
