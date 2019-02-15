@@ -3,7 +3,10 @@
 import datetime
 import re
 import math
-from app import Place, db, Review, Agendamento
+
+import sqlalchemy
+
+from app import Place, db, Review, Agendamento, Servico
 import csv
 from sqlalchemy import func
 import sys
@@ -255,18 +258,31 @@ def create_places():
 
 
 def populate_agendamento():
-    csv_file = read_csv('./data/agendamentos2.csv', skip=None)
+    csv_file = read_csv('./data/agendamentos.csv', skip=None)
 
     for c in csv_file:
-        if len(c) > 10:
-            email = c[10]
+        if len(c) > 11:
+            email = c[11]
         else:
             email = None
-        a = Agendamento(cod_agendamento=c[2], nome_requerente=c[7], data_agendamento=c[4],
-                        data_solicitacao_agendamento=c[5], servico=c[6],
-                        celular=c[9], telefone_fixo=c[8], email=email, cod_aps="{:08d}".format(int(c[0])))
-        db.session.add(a)
-        db.session.commit()
+
+        s = Servico.query.get(c[6])
+        if not s:
+            s = Servico(cod_servico=c[6], servico=c[7])
+            db.session.add(s)
+
+        a = Agendamento(cod_agendamento=c[2], nome_requerente=c[8], data_agendamento=c[4],
+                        data_solicitacao_agendamento=c[5], celular=c[10], telefone_fixo=c[9],
+                        email=email, cod_aps="{:08d}".format(int(c[0])))
+
+        try:
+            s.agendamentos.append(a)
+            db.session.commit()
+        except sqlalchemy.exc.IntegrityError:
+            db.session.rollback()
+            print("repeated {0}".format(c[8]))
+            pass
+
 
 
 

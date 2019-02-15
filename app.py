@@ -149,29 +149,41 @@ class Agendamento(db.Model):
     nome_requerente = db.Column(db.String)
     data_agendamento = db.Column(db.Date)
     data_solicitacao_agendamento = db.Column(db.Date)
-    servico = db.Column(db.String)
     celular = db.Column(db.String)
     telefone_fixo = db.Column(db.String)
     email = db.Column(db.String)
     cod_aps = db.Column(db.String, db.ForeignKey('place.cod_aps'))
+    cod_servico = db.Column(db.String, db.ForeignKey('servico.cod_servico'))
 
     def add_index_to_es(self):
         es.index(agendamentoindex, 'agendamento', self.to_json())
 
     def to_json(self):
         place = db.session.query(Place).filter_by(cod_aps=self.cod_aps).first()
+        s = Servico.query.get(self.cod_servico)
+        if not place.lat:
+            latitude = 0
+        else:
+            latitude = place.lat
+
+        if not place.lng:
+            longitude = 0
+        else:
+            longitude = place.lng
+
         json = {
             'cod_agendamento': self.cod_agendamento,
             'nome_requerente': self.nome_requerente,
             'data_agendamento': self.data_agendamento,
             'data_solicitacao_agendamento': self.data_solicitacao_agendamento,
-            'servico': self.servico,
+            'cod_servico': self.cod_servico,
+            'servico': s.servico,
             'celular': self.celular,
             'telefone_fixo': self.telefone_fixo,
             'email': self.email,
             'municipio': place.municipio,
             'uf': place.uf,
-            'location': {'lat': place.lat, 'lon': place.lng},
+            'location': {'lat': latitude, 'lon': longitude},
             'delay': days_between(self.data_agendamento, self.data_solicitacao_agendamento),
             'dia_sem_solic_agendamento': self.data_solicitacao_agendamento.weekday(),
             'dia_sem_agendamento': self.data_agendamento.weekday(),
@@ -184,6 +196,17 @@ class Agendamento(db.Model):
 
     def __repr__(self):
         return "<Review(author_name='%s', text='%s')>" % (self.author_name, self.text)
+
+
+
+class Servico(db.Model):
+    __tablename__ = 'servico'
+    cod_servico = db.Column(db.Integer, primary_key=True)
+    servico = db.Column(db.String)
+    agendamentos = db.relationship('Agendamento', backref=db.backref('servico', lazy='joined'), lazy='dynamic')
+
+    def __repr__(self):
+        return "<Servico(servico='%s')>" % (self.servico)
 
 
 

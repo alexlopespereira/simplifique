@@ -101,12 +101,12 @@ mapping = [
             "email":                            {"type": "keyword"},
             "municipio":                        {"type": "keyword"},
             "uf":                               {"type": "keyword"},
-            # "location":                         {"type": "geo_point"},
-            # "delay":                            {"type": "integer"},
-            # "dia_sem_solic_agendamento":        {"type": "keyword"},
-            # "dia_sem_agendamento":              {"type": "keyword"},
-            # "dia_mes_solic_agendamento":        {"type": "integer"},
-            # "dia_mes_agendamento":              {"type": "integer"},
+            "location":                         {"type": "geo_point"},
+            "delay":                            {"type": "integer"},
+            "dia_sem_solic_agendamento":        {"type": "keyword"},
+            "dia_sem_agendamento":              {"type": "keyword"},
+            "dia_mes_solic_agendamento":        {"type": "integer"},
+            "dia_mes_agendamento":              {"type": "integer"},
         }
     }
 }
