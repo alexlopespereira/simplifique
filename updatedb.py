@@ -6,10 +6,12 @@ import math
 
 import sqlalchemy
 
-from app import Place, db, Review, Agendamento, Servico
+from app import Place, db, Review, Agendamento, Servico, ES_HOST, agendamentoindex
 import csv
 from sqlalchemy import func
 import sys
+
+from populate_index import index_docs
 from sentiment import *
 import numpy as np
 
@@ -241,7 +243,6 @@ def write_csv(filepath, data):
         wr.writerow(data)
 
 
-
 def create_places():
     csv_file = read_csv('./data/inssof3.csv')
     for c in csv_file:
@@ -283,6 +284,9 @@ def populate_agendamento():
             print("repeated {0}".format(c[8]))
             pass
 
+    catalogurl = 'http://{0}:7000'.format(ES_HOST)
+    agendamentos = db.session.query(Agendamento).all()
+    index_docs(catalogurl, agendamentoindex, 'agendamento', 3, agendamentos)
 
 
 
