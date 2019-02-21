@@ -15,8 +15,8 @@ from populate_index import index_docs
 from sentiment import *
 import numpy as np
 
-reload(sys)
-sys.setdefaultencoding('utf8')
+# reload(sys)
+# sys.setdefaultencoding('utf8')
 
 capitais = [["Rondônia","RO","Porto Velho",-63.899902,-8.760772],
 ["Amapá","AP","Macapa",-51.069395,0.034934],
@@ -227,7 +227,7 @@ def delete_rows():
 
 
 def read_csv(file, skip=None):
-    with open(file, 'rb') as f:
+    with open(file, 'r') as f:
         reader = csv.reader(f)
         next(reader, None)  # skip the headers
         currlist = list(reader)
@@ -258,8 +258,8 @@ def create_places():
         db.session.commit()
 
 
-def populate_agendamento():
-    csv_file = read_csv('./data/agendamentos.csv', skip=None)
+def populate_agendamento(reset=False):
+    csv_file = read_csv('./data/agendamento.csv', skip=None)
 
     for c in csv_file:
         if len(c) > 11:
@@ -279,14 +279,14 @@ def populate_agendamento():
         try:
             s.agendamentos.append(a)
             db.session.commit()
-        except sqlalchemy.exc.IntegrityError:
+        except (sqlalchemy.orm.exc.FlushError, sqlalchemy.exc.IntegrityError) as e:
             db.session.rollback()
             print("repeated {0}".format(c[8]))
             pass
 
     catalogurl = 'http://{0}:7000'.format(ES_HOST)
     agendamentos = db.session.query(Agendamento).all()
-    index_docs(catalogurl, agendamentoindex, 'agendamento', 3, agendamentos)
+    index_docs(catalogurl, agendamentoindex, 'agendamento', 3, agendamentos, reset)
 
 
 
@@ -299,4 +299,4 @@ def populate_agendamento():
 # update_cod_aps()
 # delete_rows()
 # create_places()
-populate_agendamento()
+populate_agendamento(reset=True)

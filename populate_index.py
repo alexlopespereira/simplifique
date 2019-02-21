@@ -10,19 +10,20 @@ def refresh_eq_index():
     es.indices.refresh(index=reviewindex)
 
 
-def index_docs(catalog_url, index, doctype, mapping_number, documents):
+def index_docs(catalog_url, index, doctype, mapping_number, documents, reset=False):
     s = requests.session()
     headers = {'content-type': 'application/json'}
     rurl = catalog_url + "/" + index
 
-    s.delete(rurl)
-    r = s.put(rurl, data=json.dumps(mapping[0]), headers=headers)
-    resp = json.dumps(r.json(), indent=4)
-    print(resp)
-    urlmappingreviews = rurl + '/_mapping/' + doctype
-    r = s.put(urlmappingreviews, data=json.dumps(mapping[mapping_number]), headers=headers)
-    resp = json.dumps(r.json(), indent=4)
-    print(resp)
+    if reset:
+        s.delete(rurl)
+        r = s.put(rurl, data=json.dumps(mapping[0]), headers=headers)
+        resp = json.dumps(r.json(), indent=4)
+        print(resp)
+        urlmappingreviews = rurl + '/_mapping/' + doctype
+        r = s.put(urlmappingreviews, data=json.dumps(mapping[mapping_number]), headers=headers)
+        resp = json.dumps(r.json(), indent=4)
+        print(resp)
 
     for i in documents:
         i.add_index_to_es()
