@@ -24,6 +24,7 @@ urlgrammar = 'http://localhost:9000/api/v1/query'
 reviewindex = 'greviews'
 placesindex = 'aps'
 agendamentoindex = 'agendamento'
+avaliacaoindex = 'avaliacao'
 
 
 def days_between(d1, d2):
@@ -154,6 +155,7 @@ class Agendamento(db.Model):
     email = db.Column(db.String)
     cod_aps = db.Column(db.String, db.ForeignKey('place.cod_aps'))
     cod_servico = db.Column(db.String, db.ForeignKey('servico.cod_servico'))
+    avaliacoes = db.relationship('Avaliacao', backref=db.backref('agendamento', lazy='joined'), lazy='dynamic')
 
     def add_index_to_es(self):
         es.index(agendamentoindex, 'agendamento', self.to_json())
@@ -198,10 +200,38 @@ class Agendamento(db.Model):
         return "<Review(author_name='%s', text='%s')>" % (self.author_name, self.text)
 
 
+class Avaliacao(db.Model):
+    __tablename__ = 'avaliacao'
+    data_recebimento = db.Column(db.DateTime)
+    data_envio = db.Column(db.DateTime, nullable=True)
+    celular = db.Column(db.String, primary_key=True)
+    nota = db.Column(db.String)
+    operadora = db.Column(db.String)
+    cod_pergunta = db.Column(db.Integer, primary_key=True)
+    cod_agendamento = db.Column(db.String, db.ForeignKey('agendamento.cod_agendamento'))
+
+
+    def add_index_to_es(self):
+        es.index(avaliacaoindex, 'avaliacao', self.to_json())
+
+    def to_json(self):
+        json = {
+            'cod_agendamento': self.cod_agendamento,
+            'nome_requerente': self.nome_requerente,
+            'data_agendamento': self.data_agendamento,
+            'data_solicitacao_agendamento': self.data_solicitacao_agendamento,
+        }
+
+        return json
+
+    def __repr__(self):
+        return "<Review(author_name='%s', text='%s')>" % (self.author_name, self.text)
+
+
 
 class Servico(db.Model):
     __tablename__ = 'servico'
-    cod_servico = db.Column(db.Integer, primary_key=True)
+    cod_servico = db.Column(db.String, primary_key=True)
     servico = db.Column(db.String)
     agendamentos = db.relationship('Agendamento', backref=db.backref('servico', lazy='joined'), lazy='dynamic')
 

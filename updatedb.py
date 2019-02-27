@@ -6,7 +6,7 @@ import math
 
 import sqlalchemy
 
-from app import Place, db, Review, Agendamento, Servico, ES_HOST, agendamentoindex
+from app import Place, db, Review, Agendamento, Servico, ES_HOST, agendamentoindex, Avaliacao
 import csv
 from sqlalchemy import func
 import sys
@@ -257,9 +257,23 @@ def create_places():
         db.session.add(p)
         db.session.commit()
 
+def replacer(s, newstring, index, nofail=False):
+    # raise an error if index is outside of the string
+    if not nofail and index not in range(len(s)):
+        raise ValueError("index outside given string")
 
-def populate_agendamento(reset=False):
-    csv_file = read_csv('./data/agendamento.csv', skip=None)
+    # if not erroring, but the index is still not in the correct range..
+    if index < 0:  # add it to the beginning
+        return newstring + s
+    if index > len(s):  # add it to the end
+        return s + newstring
+
+    # insert the new string between "slices" of the original
+    return s[:index] + newstring + s[index + 1:]
+
+
+def populate_agendamento(file, reset=False):
+    csv_file = read_csv(file, skip=None)
 
     for c in csv_file:
         if len(c) > 11:
@@ -267,10 +281,16 @@ def populate_agendamento(reset=False):
         else:
             email = None
 
+        if c[6] == '-':
+            return
         s = Servico.query.get(c[6])
         if not s:
             s = Servico(cod_servico=c[6], servico=c[7])
             db.session.add(s)
+
+        if c[10] != '0':
+            if c[10][2] == '0':
+                c[10] = replacer(c[10], '9', 2)
 
         a = Agendamento(cod_agendamento=c[2], nome_requerente=c[8], data_agendamento=c[4],
                         data_solicitacao_agendamento=c[5], celular=c[10], telefone_fixo=c[9],
@@ -290,13 +310,41 @@ def populate_agendamento(reset=False):
 
 
 
+def populate_avaliacao(file, reset=False):
+    csv_file = read_csv(file, skip=None)
 
-# get_sentiment()
-# fill_state()
-# media_ponderada()
-# convert_date()
-# update_qtd()
-# update_cod_aps()
-# delete_rows()
-# create_places()
-populate_agendamento(reset=True)
+    for c in csv_file:
+
+        if c[4] == 'Instituto Nacional do Seguro Social':
+            cod_pergunta = 0
+        else:
+            cod_pergunta = int(c[4][8])
+
+        s = Agendamento.query.filter(Agendamento.celular == c[1][2:]).first()
+        if not s:
+            print(c[1][2:])
+            continue
+
+        a = Avaliacao(celular=c[1][2:], data_recebimento=c[3], nota=c[6], cod_pergunta=cod_pergunta, operadora=c[7], cod_agendamento=s.cod_agendamento)
+
+        try:
+            db.session.add(a)
+            db.session.commit()
+        except (sqlalchemy.orm.exc.FlushError, sqlalchemy.exc.IntegrityError) as e:
+            db.session.rollback()
+            print("repeated {0}".format(c[8]))
+            pass
+
+    catalogurl = 'http://{0}:7000'.format(ES_HOST)
+    agendamentos = db.session.query(Agendamento).all()
+    index_docs(catalogurl, agendamentoindex, 'agendamento', 3, agendamentos, reset)
+
+
+
+populate_agendamento('./data/agendamento18-02.csv', reset=True)
+populate_agendamento('./data/agendamento19-02.csv', reset=True)
+populate_agendamento('./data/agendamento20-02.csv', reset=True)
+populate_agendamento('./data/agendamento21-02.csv', reset=True)
+populate_agendamento('./data/agendamento22-02.csv', reset=True)
+
+populate_avaliacao('./data/avaliacao.csv')
