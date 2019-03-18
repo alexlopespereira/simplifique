@@ -94,15 +94,15 @@ def amazon_sentment(text):
     rjson['SentimentScore']['score'] = score
     return rjson['SentimentScore']
 
-# text = """Emoção do começo ao fim! Um filme que retrata a história de um dos melhores cantores história. Difícil você não interagir junto."""
+text = """Emoção do começo ao fim! Um filme que retrata a história de um dos melhores cantores história. Difícil você não interagir junto."""
 # result = gotitai_sentment(text)
 # print result
 #
 # result = google_sentment(text)
 # print result
-#
-# result = amazon_sentment(text)
-# print(result)
+
+result = amazon_sentment(text)
+print(result)
 
 
 # Examples
