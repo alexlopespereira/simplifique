@@ -5,13 +5,13 @@ import requests
 
 
 def postObj(url, data):
-    print url
+    print(url)
     headers = {'Content-Type': 'application/json; charset=utf-8',
                'Accept': 'application/xml, text/javascript, */*; q=0.01',
                'Content-Language':'pt'}
     r = requests.post(url, data=json.dumps(data), headers=headers)
     resp = json.dumps(r.json(), indent=4)
-    print resp
+    print(resp)
     return r.json()
 
 
